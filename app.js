@@ -2,21 +2,30 @@ const css = require('css');
 const filesystem = require('fs');
 const crypto = require('crypto');
 
-Object.prototype.equals = function(object, ignoreProps = null) {
+Object.prototype.equals = function(
+  object,
+  ignoreProps = ['position']
+  /* ignoreProps = null */
+) {
+  const isObject =
+    object && typeof object === 'object' && object.constructor === Object;
+
+  if (!isObject) return false;
+
   if (ignoreProps === null) {
-    for (property in this) {
-      if (
-        Array.isArray(this[property]) &&
-        !this[property].equals(object[property])
-      ) {
-        return false;
-      } else if (
+    for (let property in this) {
+      const areBothArrays =
+        Array.isArray(this[property]) && Array.isArray(object[property]);
+      const areBothDicts =
         this[property] &&
         typeof this[property] === 'object' &&
         this[property].constructor === Object &&
-        !this[property].equals(object[property])
-      ) {
-        return false;
+        object[property] &&
+        typeof object[property] == 'object' &&
+        object[property].constructor === Object;
+
+      if (areBothArrays || areBothDicts) {
+        if (!this[property].equals(object[property])) return false;
       } else if (
         object[property] === undefined ||
         this[property] !== object[property]
@@ -26,20 +35,20 @@ Object.prototype.equals = function(object, ignoreProps = null) {
     }
   } else {
     for (property in this) {
-      if (ignoreProps.includes(property)) {
-        continue;
-      } else if (
-        Array.isArray(this[property]) &&
-        !this[property].equals(object[property])
-      ) {
-        return false;
-      } else if (
+      const areBothArrays =
+        Array.isArray(this[property]) && Array.isArray(object[property]);
+      const areBothDicts =
         this[property] &&
         typeof this[property] === 'object' &&
         this[property].constructor === Object &&
-        !this[property].equals(object[property])
-      ) {
-        return false;
+        object[property] &&
+        typeof object[property] == 'object' &&
+        object[property].constructor === Object;
+
+      if (ignoreProps.includes(property)) {
+        continue;
+      } else if (areBothArrays || areBothDicts) {
+        if (!this[property].equals(object[property])) return false;
       } else if (
         object[property === undefined] ||
         this[property] !== object[property]
@@ -62,8 +71,8 @@ Array.prototype.equals = function(array, ignoreOrder = false) {
       let control = false;
 
       for (let j = 0; j < array.length; j++) {
-        const areBothArrays = Array.isArray(this[i]) && Array.isArray(array[j]);
-        const areBothDicts =
+        let areBothArrays = Array.isArray(this[i]) && Array.isArray(array[j]);
+        let areBothDicts =
           this[i] &&
           typeof this[i] === 'object' &&
           this[i].constructor === Object &&
@@ -86,8 +95,8 @@ Array.prototype.equals = function(array, ignoreOrder = false) {
       let control = false;
 
       for (let i = 0; i < this.length; i++) {
-        const areBothArrays = Array.isArray(array[j]) && Array.isArray(this[i]);
-        const areBothDicts =
+        let areBothArrays = Array.isArray(array[j]) && Array.isArray(this[i]);
+        let areBothDicts =
           array[j] &&
           typeof array[j] === 'object' &&
           array[j].constructor === Object &&
@@ -107,8 +116,8 @@ Array.prototype.equals = function(array, ignoreOrder = false) {
   } else {
     // ignoreOrder === false
     for (let i = 0; i < this.length; i++) {
-      const areBothArrays = Array.isArray(this[i]) && Array.isArray(array[i]);
-      const areBothDicts =
+      let areBothArrays = Array.isArray(this[i]) && Array.isArray(array[i]);
+      let areBothDicts =
         this[i] &&
         typeof this[i] === 'object' &&
         this[i].constructor === Object &&
@@ -123,58 +132,6 @@ Array.prototype.equals = function(array, ignoreOrder = false) {
   }
 
   return true;
-
-  /*
-
-  if (ignoreProps === null) {
-    //for ()
-
-    for (property in this) {
-      if (
-        Array.isArray(this[property]) &&
-        !this[property].equals(object[property])
-      ) {
-        return false;
-      } else if (
-        this[property] &&
-        typeof this[property] === 'object' &&
-        this[property].constructor === Object &&
-        !this[property].equals(object[property])
-      ) {
-        return false;
-      } else if (
-        object[property] === undefined ||
-        obj_1[property] !== object[property]
-      ) {
-        return false;
-      }
-    }
-  } else {
-    for (property in obj_1) {
-      if (ignoreProps.includes(property)) {
-        continue;
-      } else if (
-        Array.isArray(this[property]) &&
-        !this[property].equals(object[property])
-      ) {
-        return false;
-      } else if (
-        this[property] &&
-        typeof this[property] === 'object' &&
-        this[property].constructor === Object &&
-        !this[property].equals(object[property])
-      ) {
-        return false;
-      } else if (
-        object[property === undefined] ||
-        obj_1[property] !== object[property]
-      ) {
-        return false;
-      }
-    }
-  }
-
-  */
 };
 
 function main() {
@@ -230,7 +187,7 @@ function refactorCSS(error, data) {
 }
 
 function mergeDeclarations(existing_declarations, new_declarations) {
-  if (arraysEquivalent(existing_declarations, new_declarations)) {
+  if (existing_declarations.equals(new_declarations, true)) {
     return existing_declarations;
   }
 
@@ -249,36 +206,6 @@ function mergeDeclarations(existing_declarations, new_declarations) {
   }
   return true;
 }
-
-/*
-
-function arraysEquivalent(first_array, second_array) {
-  if (first_array === second_array) return true;
-  if (first_array == null || second_array == null) return false;
-  if (first_array.length != second_array.length) return false;
-
-  // If you don't care about the order of the elements inside
-  // the array, you should sort both arrays here.
-  // Please note that calling sort on an array will modify that array.
-  // you might want to clone your array first.
-
-  for (var i = 0; i < first_array.length; ++i) {
-    let control = false;
-    for (j = 0; j < second_array.length; ++j) {
-      if (areObjsEqual(first_array[i], second_array[j], ['position'])) {
-        control = true;
-        break;
-      }
-    }
-
-    if (!control) {
-      return false;
-    }
-  }
-  return true;
-}
-
-*/
 
 /*
 console.log(
@@ -320,30 +247,22 @@ console.log(
 
 // main();
 
-/*
 console.log(
-  areObjsEqual(
-    {
-      type: 'declaration',
-      property: 'display',
-      value: 'none',
-      position: {
-        start: { line: 4457, column: 3 },
-        end: { line: 4457, column: 16 },
-      },
+  {
+    type: 'declaration',
+    property: 'display',
+    value: 'none',
+    position: {
+      start: { line: 4457, column: 3 },
+      end: { line: 4457, column: 16 },
     },
-    {
-      type: 'declaration',
-      property: 'display',
-      value: 'none',
-      position: {
-        start: { line: 4457, column: 3 },
-        end: { line: 4457, column: 16 },
-      },
+  }.equals({
+    type: 'declaration',
+    property: 'display',
+    value: 'none',
+    position: {
+      start: { line: 4457, column: 3 },
+      end: { line: 4457, column: 16 },
     },
-    ['position']
-  )
+  })
 );
-*/
-
-console.log([[1], [2]].equals([[1], [2]]));
