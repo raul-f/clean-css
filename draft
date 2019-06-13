@@ -1,0 +1,75 @@
+
+Array.prototype.equals = function(array, ignoreOrder) {
+  ignoreOrder ? yes (I) : no (II)
+
+  (I) {
+    iterate over this:
+      start control at false
+
+      iterate over array:
+        if array[positionInner] is Array and this[positionOuter] is Array:
+          (V)
+        else if array[positionInner] is Object and this[positionOuter] is Object:
+          (VI)
+        else if array[positionInner] !== this[positionOuter]:
+          set control to true;
+
+      if control is still false: 
+        return false;
+    
+    iterate over array:
+      start control at false
+
+      iterate over this:
+        if this[positionInner] is Array and array[positionOuter] is Array:
+          (VII)
+        else if this[positionInner] is Object and array[positionOuter] is Object:
+          (VIII)
+        else if this[positionInner] !== array[positionOuter]:
+          set control to true;
+
+      if control is still false: 
+        return false;
+  }
+
+  (II) {
+    iterate over this:
+      if this[position] is Array and array[position] is Array:
+        (III)
+      else if this[position] is Object and array[position] is Object:
+        (IV)
+      else if this[position] !== array[position]:
+        return false;
+  }
+
+  (III) {
+    if not this[position].equals(array[position]) return false;
+  }
+
+  (IV) {
+    if not this[position].equals(array[position]) return false;
+  }
+
+  (V) {
+    if array[positionInner].equals(this[positionOuter]): 
+      set control to true;
+  }
+
+  (VI) {
+    if array[positionInner].equals(this[positionOuter]): 
+      set control to true;
+  }
+
+  (VII) {
+    if this[positionInner].equals(array[positionOuter]): 
+      set control to true;
+  }
+
+  (VIII) {
+    if this[positionInner].equals(array[positionOuter]): 
+      set control to true;
+  }
+}
+
+
+let o
