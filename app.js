@@ -2,6 +2,8 @@ const css = require('css');
 const filesystem = require('fs');
 const crypto = require('crypto');
 
+// Fully functional
+
 Object.prototype.equals = function(
   object,
   ignoreProps = ['position']
@@ -60,6 +62,8 @@ Object.prototype.equals = function(
 
   return true;
 };
+
+// Semi-functional; if order is ignored, it does not account for item quantities
 
 Array.prototype.equals = function(array, ignoreOrder = false) {
   if (!Array.isArray(array)) return false;
@@ -134,8 +138,99 @@ Array.prototype.equals = function(array, ignoreOrder = false) {
   return true;
 };
 
+// Fully functional
+
+Array.prototype.removeRepeated = function() {
+  let _this = [...this],
+    rest;
+
+  for (
+    let outerCounter = 0, outerIndex = 0;
+    outerCounter < this.length;
+    outerCounter++, outerIndex++
+  ) {
+    rest = _this.slice(0, outerIndex).concat(_this.slice(outerIndex + 1));
+
+    let isArray = Array.isArray(_this[outerIndex]);
+    let isDict =
+      _this[outerIndex] &&
+      typeof _this[outerIndex] === 'object' &&
+      _this[outerIndex].constructor === Object;
+
+    for (let innerIndex = 0; innerIndex < rest.length; innerIndex++) {
+      let areBothArrays = isArray && Array.isArray(rest[innerIndex]);
+      let areBothDicts =
+        isDict &&
+        rest[innerIndex] &&
+        typeof rest[innerIndex] === 'object' &&
+        rest[innerIndex].constructor === Object;
+
+      let cutHeight;
+
+      if (innerIndex === outerIndex) {
+        cutHeight = outerIndex;
+      } else {
+        cutHeight = innerIndex + 1;
+      }
+
+      if (areBothArrays || areBothDicts) {
+        if (_this[outerIndex].equals(rest[innerIndex])) {
+          _this = _this.slice(0, cutHeight).concat(_this.slice(cutHeight + 1));
+          // outerCounter++;
+          outerIndex--;
+          break;
+        }
+      } else if (_this[outerIndex] === rest[innerIndex]) {
+        _this = _this.slice(0, cutHeight).concat(_this.slice(cutHeight + 1));
+        // outerCounter++;
+        outerIndex--;
+        break;
+      }
+    }
+  }
+
+  return _this;
+};
+
 function main() {
-  filesystem.readFile('custom.css', 'utf8', refactorCSS);
+  // filesystem.readFile('custom.css', 'utf8', refactorCSS);
+
+  let someStyles = css.parse(`
+    header {
+      background-color: #fff;
+      background-color: #fff;
+      background-color: #fff;
+      border-bottom: 1px solid #E6E6E6;
+      display: none;
+      background-color: #fff;
+      display: none;
+      border-bottom: 1px solid #E6E6E6;
+    }
+    header .header-desk {
+      display: none;
+      display: none;
+    }
+    @media (min-width: 992px) {
+      header .header-desk {
+        display: block;
+      }
+      header .header-mobile {
+        display: none;
+      }
+    }
+  `);
+
+  let someRules = someStyles.stylesheet.rules;
+
+  console.log(`Before:`, someRules[0].declarations);
+
+  for (const rule of someRules) {
+    if (Array.isArray(rule.declarations)) {
+      rule.declarations = rule.declarations.removeRepeated();
+    }
+  }
+
+  console.log(`\nAfter:`, someRules[0].declarations);
 }
 
 function refactorCSS(error, data) {
@@ -187,7 +282,13 @@ function refactorCSS(error, data) {
 }
 
 function mergeDeclarations(existing_declarations, new_declarations) {
-  if (existing_declarations.equals(new_declarations, true)) {
+  let prev_decs = [...existing_declarations],
+    new_decs = [...new_declarations];
+
+  prev_decs = prev_decs.removeRepeated();
+  new_decs = new_decs.removeRepeated();
+
+  if (prev_decs.equals(new_decs, true)) {
     return existing_declarations;
   }
 
@@ -245,24 +346,4 @@ console.log(
 );
 */
 
-// main();
-
-console.log(
-  {
-    type: 'declaration',
-    property: 'display',
-    value: 'none',
-    position: {
-      start: { line: 4457, column: 3 },
-      end: { line: 4457, column: 16 },
-    },
-  }.equals({
-    type: 'declaration',
-    property: 'display',
-    value: 'none',
-    position: {
-      start: { line: 4457, column: 3 },
-      end: { line: 4457, column: 16 },
-    },
-  })
-);
+main();
