@@ -195,42 +195,130 @@ Array.prototype.removeRepeated = function() {
 function main() {
   // filesystem.readFile('custom.css', 'utf8', refactorCSS);
 
-  let someStyles = css.parse(`
+  const parsedRules = css.parse(`
     header {
-      background-color: #fff;
-      background-color: #fff;
-      background-color: #fff;
-      border-bottom: 1px solid #E6E6E6;
-      display: none;
-      background-color: #fff;
-      display: none;
-      border-bottom: 1px solid #E6E6E6;
+      color: #282828;
+      font-size: 11px;
     }
-    header .header-desk {
-      display: none;
+
+    header {
+      background: url('../img/phone-header.png') no-repeat left center;
+      font-family: 'Muli', sans-serif;
+      height: 15px;
+      display: inline-block;
+    }
+    
+    header {
+      background: url('../img/whats-header.png') no-repeat left center;
+      font-family: 'Muli', sans-serif;
+      height: 15px;
+      display: inline-block;
+    }
+
+    header {
+      color: #636363;
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 700;
+      height: 20px;
+      width: 100%;
+    }
+
+    header  {
+      background: url('../img/login-header.png') no-repeat left center;
+      height: 20px;
+    }
+
+    header  {
+      color: #E33736;
+    }
+
+    header {
+      text-align: right;
+      font-family: 'Muli', sans-serif;
+    }
+
+    header {
+      margin-left: 36px;
+      padding-left: 36px;
+      border-left: 1px solid #282828;
+    }
+
+    header  {
+      margin: 20px auto;
+    }
+
+    header  {
       display: none;
     }
-    @media (min-width: 992px) {
-      header .header-desk {
-        display: block;
-      }
-      header .header-mobile {
-        display: none;
-      }
+
+    header  {
+      color: #282828;
+      font-size: 11px;
+    }
+
+    header {
+      background: url('../img/phone-header.png') no-repeat left center;
+      font-family: 'Muli', sans-serif;
+      height: 15px;
+      display: inline-block;
+    }
+
+    header {
+      background: url('../img/whats-header.png') no-repeat left center;
+      font-family: 'Muli', sans-serif;
+      height: 15px;
+      display: inline-block;
+    }
+
+    header{
+      color: #636363;
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 700;
+      height: 20px;
+      width: 100%;
+    }
+
+    header{
+      background: url('../img/login-header.png') no-repeat left center;
+      height: 20px;
+    }
+
+    header {
+      color: #E33736;
+    }
+
+    header {
+      text-align: right;
+      font-family: 'Muli', sans-serif;
+    }
+
+    header {
+      margin-left: 36px;
+      padding-left: 36px;
+      border-left: 1px solid #282828;
+    }
+
+    header {
+      margin: 20px auto;
+    }
+
+    header {
+      display: none;
     }
   `);
 
-  let someRules = someStyles.stylesheet.rules;
+  // console.log(parsedRules.stylesheet.rules);
 
-  console.log(`Before:`, someRules[0].declarations);
+  let headRule = parsedRules.stylesheet.rules[0];
+  let headDecs = headRule.declarations;
 
-  for (const rule of someRules) {
-    if (Array.isArray(rule.declarations)) {
-      rule.declarations = rule.declarations.removeRepeated();
-    }
+  for (let rule of parsedRules.stylesheet.rules) {
+    headDecs = mergeDeclarations(headDecs, rule.declarations);
   }
 
-  console.log(`\nAfter:`, someRules[0].declarations);
+  console.log(headDecs);
 }
 
 function refactorCSS(error, data) {
@@ -292,58 +380,9 @@ function mergeDeclarations(existing_declarations, new_declarations) {
     return existing_declarations;
   }
 
-  // If you don't care about the order of the elements inside
-  // the array, you should sort both arrays here.
-  // Please note that calling sort on an array will modify that array.
-  // you might want to clone your array first.
+  let combined_decs = prev_decs.concat(new_decs).removeRepeated();
 
-  for (const existingDeclaration of existing_declarations) {
-    let diffCounter = 0;
-
-    for (const declaration of new_declarations) {
-    }
-
-    if (!new_declarations.includes(existingDeclaration)) return false;
-  }
-  return true;
+  return combined_decs;
 }
-
-/*
-console.log(
-  css.parse(`
-    header {
-      background-color: #fff;
-      border-bottom: 1px solid #E6E6E6;
-    }
-    header .header-desk {
-      display: none;
-    }
-    @media (min-width: 992px) {
-      header .header-desk {
-        display: block;
-      }
-      header .header-mobile {
-        display: none;
-      }
-    }
-
-    header {
-    background-color: #fff;
-    border-bottom: 1px solid #E6E6E6;
-    }
-    header .header-desk {
-      display: none;
-    }
-    @media (min-width: 992px) {
-      header .header-desk {
-        display: block;
-      }
-      header .header-mobile {
-        display: none;
-      }
-    }
-  `).stylesheet
-);
-*/
 
 main();
