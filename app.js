@@ -141,60 +141,52 @@ Array.prototype.equals = function(array, ignoreOrder = false) {
 // Fully functional
 
 Array.prototype.removeRepeated = function() {
-  let _this = [...this],
-    rest;
+  if (this.length < 2) {
+    return this;
+  } else {
+    let _this = [...this],
+      size = _this.length,
+      last_i = size - 1;
 
-  for (
-    let outerCounter = 0, outerIndex = 0;
-    outerCounter < this.length;
-    outerCounter++, outerIndex++
-  ) {
-    rest = _this.slice(0, outerIndex).concat(_this.slice(outerIndex + 1));
+    for (let index_i = 0; index_i < size; index_i++) {
+      for (let index_j = 0; index_j < size; index_j++) {
+        let outItem = _this[index_i],
+          inItem = _this[index_j];
 
-    let isArray = Array.isArray(_this[outerIndex]);
-    let isDict =
-      _this[outerIndex] &&
-      typeof _this[outerIndex] === 'object' &&
-      _this[outerIndex].constructor === Object;
+        let areBothArrays = Array.isArray(outItem) && Array.isArray(inItem);
+        let areBothDicts =
+          outItem &&
+          typeof outItem === 'object' &&
+          outItem.constructor === Object &&
+          inItem &&
+          typeof inItem === 'object' &&
+          inItem.constructor === Object;
 
-    for (let innerIndex = 0; innerIndex < rest.length; innerIndex++) {
-      let areBothArrays = isArray && Array.isArray(rest[innerIndex]);
-      let areBothDicts =
-        isDict &&
-        rest[innerIndex] &&
-        typeof rest[innerIndex] === 'object' &&
-        rest[innerIndex].constructor === Object;
+        let areEqual =
+          outItem === inItem ||
+          ((areBothArrays || areBothDicts) && inItem.equals(outItem));
 
-      let cutHeight;
-
-      if (innerIndex === outerIndex) {
-        cutHeight = outerIndex;
-      } else {
-        cutHeight = innerIndex + 1;
-      }
-
-      if (areBothArrays || areBothDicts) {
-        if (_this[outerIndex].equals(rest[innerIndex])) {
-          _this = _this.slice(0, cutHeight).concat(_this.slice(cutHeight + 1));
-          // outerCounter++;
-          outerIndex--;
-          break;
+        if (index_i !== index_j && areEqual) {
+          if (index_j === last_i) {
+            return _this.slice(0, index_j).removeRepeated();
+          } else {
+            return _this
+              .slice(0, index_j)
+              .concat(_this.slice(index_j + 1))
+              .removeRepeated();
+          }
         }
-      } else if (_this[outerIndex] === rest[innerIndex]) {
-        _this = _this.slice(0, cutHeight).concat(_this.slice(cutHeight + 1));
-        // outerCounter++;
-        outerIndex--;
-        break;
       }
     }
-  }
 
-  return _this;
+    return _this;
+  }
 };
 
 function main() {
-  // filesystem.readFile('custom.css', 'utf8', refactorCSS);
+  filesystem.readFile('parsed-custom.css', 'utf8', refactorCSS);
 
+  /*
   const parsedRules = css.parse(`
     header {
       color: #282828;
@@ -308,24 +300,15 @@ function main() {
       display: none;
     }
   `);
-
+  */
   // console.log(parsedRules.stylesheet.rules);
-
-  let headRule = parsedRules.stylesheet.rules[0];
-  let headDecs = headRule.declarations;
-
-  for (let rule of parsedRules.stylesheet.rules) {
-    headDecs = mergeDeclarations(headDecs, rule.declarations);
-  }
-
-  console.log(headDecs);
 }
 
 function refactorCSS(error, data) {
   // console.log(data);
   const newRules = [];
   const mediaQueries = [];
-  const stateTree = {};
+  const ruleTree = {};
   const secret = '53P876q-r';
 
   let counter = 0,
@@ -338,51 +321,109 @@ function refactorCSS(error, data) {
   const output = parsed;
   const rules = parsed.stylesheet.rules;
 
-  for (const rule of rules) {
-    if (/* counter < 200 && counter >= 180 &&*/ rule.type == 'rule') {
-      ruleId = crypto
-        .createHmac('sha256', secret)
-        .update(rule.selectors.join())
-        .digest('hex');
+  for (const query of mediaQueries) {
+    const queryId = crypto
+      .createHmac('sha256', secret)
+      .update(query.media)
+      .digest('hex');
 
-      ruleDeclarations = rule.declarations;
+    // console.log(query);
 
-      if (stateTree[ruleId]) {
-        existingRule = stateTree[ruleId];
-        existingDeclarations = existingRule.declarations;
-
-        console.log(JSON.stringify(existingDeclarations));
-
-        existingDeclarations = mergeDeclarations(
-          ruleDeclarations,
-          existingDeclarations
-        );
-      } else {
-        stateTree[ruleId] = rule;
-      }
-    } else if (rule.type == 'media') {
-      mediaQueries.push(rule);
+    if (ruleTree[queryId]) {
+      ruleTree[queryId].rules = mergeSets(ruleTree[queryId].rules, query.rules);
+    } else {
+      ruleTree[queryId] = query;
     }
-
-    counter++;
   }
-  // console.log(stateTree);
+
+  for (const id in ruleTree) {
+    if (ruleTree[id].type) newRules.push(ruleTree[id]);
+    if (ruleTree[id].type == 'media') console.log('media queries');
+  }
+
+  output.stylesheet.rules = collapseRuleset(rules);
+
+  filesystem.writeFile('parsed-custom.css', css.stringify(output), err => {
+    if (err) console.log(err);
+    else console.log('Successfully Written to File.');
+  });
 }
 
-function mergeDeclarations(existing_declarations, new_declarations) {
-  let prev_decs = [...existing_declarations],
-    new_decs = [...new_declarations];
+function collapseRuleset(rules) {
+  const secret = '53P876q-r';
 
-  prev_decs = prev_decs.removeRepeated();
-  new_decs = new_decs.removeRepeated();
+  let id, declarations, old_rule, old_declarations;
+  let hashSet = {};
+  let collapsedRuleset = [];
 
-  if (prev_decs.equals(new_decs, true)) {
-    return existing_declarations;
+  for (const rule of rules) {
+    if (rule.type == 'rule') {
+      id = crypto
+        .createHmac('sha256', secret)
+        .update(rule.selectors.join(', '))
+        .digest('hex');
+
+      declarations = rule.declarations;
+
+      if (hashSet[id]) {
+        old_rule = hashSet[id];
+        old_declarations = old_rule.declarations;
+
+        // console.log(JSON.stringify(existingDeclarations));
+
+        if (Array.isArray(old_declarations)) {
+          old_declarations = mergeSets(declarations, old_declarations);
+        } else {
+          old_declarations = declarations;
+        }
+
+        hashSet[id].declarations = old_declarations;
+      } else {
+        hashSet[id] = rule;
+      }
+    } else if (rule.type == 'media') {
+      id = crypto
+        .createHmac('sha256', secret)
+        .update(rule.media)
+        .digest('hex');
+
+      if (hashSet[id]) {
+        hashSet[id].rules = collapseRuleset(
+          mergeSets(hashSet[id].rules, rule.rules)
+        );
+      } else {
+        hashSet[id] = rule;
+      }
+    }
   }
 
-  let combined_decs = prev_decs.concat(new_decs).removeRepeated();
+  for (const id in hashSet) {
+    if (hashSet[id].type) collapsedRuleset.push(hashSet[id]);
+  }
 
-  return combined_decs;
+  return collapsedRuleset;
+}
+
+function mergeSets(existing_set, new_set) {
+  let base_set = [...existing_set],
+    extension_set = [...new_set];
+
+  base_set = base_set.removeRepeated();
+  extension_set = extension_set.removeRepeated();
+
+  if (base_set.equals(extension_set, true)) {
+    return existing_set;
+  }
+
+  let final_set = base_set.concat(extension_set).removeRepeated();
+
+  return final_set;
 }
 
 main();
+
+module.exports = {
+  Array,
+  Object,
+  mergeSets,
+};
